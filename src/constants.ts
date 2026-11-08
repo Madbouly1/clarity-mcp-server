@@ -1,6 +1,4 @@
-import { getConfigValue } from "./utils.js";
-
-export const CLARITY_API_TOKEN = getConfigValue('clarity_api_token');
+export { CLARITY_API_TOKEN, CLARITY_AUTH_MODE } from "./config.js";
 
 // Endpoint URLs.
 export const API_BASE_URL = `https://clarity.microsoft.com/mcp`;

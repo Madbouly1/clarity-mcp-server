@@ -6,12 +6,17 @@ import pkg from "../package.json" with { type: "json" };
 import {
   ANALYTICS_DASHBOARD_DESCRIPTION,
   ANALYTICS_DASHBOARD_TOOL,
-  CLARITY_API_TOKEN,
   DOCUMENTATION_DESCRIPTION,
   DOCUMENTATION_TOOL,
   SESSION_RECORDINGS_DESCRIPTION,
   SESSION_RECORDINGS_TOOL
 } from "./constants.js";
+import {
+  CLARITY_API_TOKEN,
+  CLARITY_AUTH_MODE,
+  LOCAL_TOKEN_IGNORED,
+  getHttpsProxyFromEnv
+} from "./config.js";
 import {
   SYSTEM_INSTRUCTIONS_PROMPT
 } from "./instructions.js";
@@ -30,12 +35,12 @@ const server = new McpServer(
   {
     name: pkg.name,
     version: pkg.version,
+  },
+  {
     capabilities: {
       resources: {},
       tools: {}
     },
-  },
-  {
     instructions: SYSTEM_INSTRUCTIONS_PROMPT,
   }
 );
@@ -100,11 +105,19 @@ server.tool(
 
 // Main function
 async function main() {
-  // Log configuration status
-  if (CLARITY_API_TOKEN) {
-    console.error("Clarity API token configured via environment/command-line");
+  // Log configuration status (never the token or proxy URL, which may embed credentials)
+  if (CLARITY_AUTH_MODE === "proxy") {
+    console.error("Clarity auth mode: proxy (no Authorization header is sent; the network proxy must inject the credential)");
+    if (!getHttpsProxyFromEnv()) {
+      console.error("Warning: proxy auth mode is enabled but HTTPS_PROXY is not set; requests will be refused");
+    }
+    if (LOCAL_TOKEN_IGNORED) {
+      console.error("Warning: a local Clarity API token was provided but is ignored in proxy auth mode");
+    }
+  } else if (CLARITY_API_TOKEN) {
+    console.error("Clarity auth mode: token (API token configured via environment/command-line)");
   } else {
-    console.error("No Clarity API token configured, it must be provided with each request");
+    console.error("Clarity auth mode: token, but no Clarity API token is configured; tool calls will fail until one is provided");
   }
 
   const transport = new StdioServerTransport();

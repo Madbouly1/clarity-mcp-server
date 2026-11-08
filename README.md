@@ -94,9 +94,41 @@ You can provide the [Clarity data export API](https://learn.microsoft.com/en-us/
    npx @microsoft/clarity-mcp-server --clarity_api_token=your-token
    ```
 
-2. **Tool Parameters**:
-   <br>
-   Provide `token` as a parameter when calling the `get-clarity-data` tool
+2. **Environment Variable**:
+   ```bash
+   CLARITY_API_TOKEN=your-token npx @microsoft/clarity-mcp-server
+   ```
+
+### Authentication modes
+
+| Mode | How to enable | What the server sends |
+| --- | --- | --- |
+| `token` (default) | nothing, or `CLARITY_AUTH_MODE=token` | `Authorization: Bearer <CLARITY_API_TOKEN>` |
+| `proxy` | `CLARITY_AUTH_MODE=proxy` or `--clarity_auth_mode=proxy` | **No** `Authorization` header. A network proxy injects the real token. |
+
+In both modes, outbound requests honor `HTTPS_PROXY` / `NO_PROXY`.
+
+#### Proxy mode (Claude Code on the web Network secrets)
+
+Proxy mode keeps the Clarity token out of the VM entirely. The server never reads
+`CLARITY_API_TOKEN` (it is ignored with a warning if present), never sends a placeholder
+`Authorization` header, and refuses to make requests unless `HTTPS_PROXY` is set.
+
+1. In Claude Code on the web, open the cloud environment menu → **Edit** → **Network secrets**
+   and add a secret:
+   - **Host:** `clarity.microsoft.com`
+   - **Header:** `Authorization`
+   - **Prefix:** `Bearer`
+   - **Value:** your Clarity data export API token
+2. Run the server with proxy mode enabled:
+   ```bash
+   CLARITY_AUTH_MODE=proxy npx @microsoft/clarity-mcp-server
+   ```
+   or, in an MCP client config: `"args": ["@microsoft/clarity-mcp-server", "--clarity_auth_mode=proxy"]`.
+
+If Clarity answers `401`/`403`, the secret is missing or saved with the wrong header/prefix.
+If the proxy refuses the connection, `clarity.microsoft.com` is not allowed in the environment
+(saving a Network secret for that host allows it).
 
 ## Configuring MCP Clients
 
